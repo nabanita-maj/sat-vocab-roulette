@@ -595,9 +595,9 @@
   </header>
 
   <div class="difficulty-bar">
-    <button class="diff-btn active" data-diff="mixed" onclick="setDifficulty('mixed')">Mixed</button>
-    <button class="diff-btn" data-diff="easy" onclick="setDifficulty('easy')">Common</button>
-    <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">Advanced</button>
+    <button class="diff-btn active" data-mode="vocab" onclick="setMode('vocab')">Vocab</button>
+    <button class="diff-btn" data-mode="meaning" onclick="setMode('meaning')">Meaning</button>
+    <button class="diff-btn" data-mode="scenario" onclick="setMode('scenario')">Scenario</button>
   </div>
 
   <div class="scoreboard">
@@ -816,7 +816,7 @@ let state = {
   maxLives: 6,
   totalCorrect: 0,
   totalAnswered: 0,
-  difficulty: 'mixed',
+  mode: 'vocab',
   currentWord: null,
   spinning: false,
   usedWords: [],
@@ -836,16 +836,15 @@ function init() {
   renderChambers();
 }
 
-function setDifficulty(diff) {
-  state.difficulty = diff;
-  document.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b.dataset.diff === diff));
+function setMode(mode) {
+  state.mode = mode;
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
   populateWheel();
   drawWheel();
 }
 
 function getFilteredBank() {
-  if (state.difficulty === 'mixed') return VOCAB_BANK;
-  return VOCAB_BANK.filter(w => w.diff === state.difficulty);
+  return VOCAB_BANK;
 }
 
 function populateWheel() {
@@ -1008,26 +1007,75 @@ function spinWheel() {
 // ─── QUIZ ──────────────────────────────────────────────────────
 function showQuiz() {
   const word = state.currentWord;
-  document.getElementById('theWord').textContent = word.word;
-  document.getElementById('thePos').textContent = `(${word.pos})`;
-
-  // Build options: 1 correct + 3 wrong (shuffled)
-  const options = [
-    { text: word.def, correct: true },
-    ...word.wrong.map(w => ({ text: w, correct: false }))
-  ].sort(() => Math.random() - 0.5);
-
+  const mode = state.mode || 'vocab';
   const optionsEl = document.getElementById('options');
+  const questionTextEl = document.querySelector('.question-text');
+
   optionsEl.innerHTML = '';
   const letters = ['A', 'B', 'C', 'D'];
 
-  options.forEach((opt, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'option-btn';
-    btn.innerHTML = `<span class="option-letter">${letters[i]}</span>${opt.text}`;
-    btn.onclick = () => handleAnswer(opt.correct, btn, optionsEl, word);
-    optionsEl.appendChild(btn);
-  });
+  if (mode === 'vocab') {
+    document.getElementById('theWord').textContent = word.word;
+    document.getElementById('thePos').textContent = `(${word.pos})`;
+    questionTextEl.textContent = 'What does this word mean?';
+
+    const options = [
+      { text: word.def, correct: true },
+      ...word.wrong.map(w => ({ text: w, correct: false }))
+    ].sort(() => Math.random() - 0.5);
+
+    options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.dataset.correct = opt.correct;
+      btn.innerHTML = `<span class="option-letter">${letters[i]}</span>${opt.text}`;
+      btn.onclick = () => handleAnswer(opt.correct, btn, optionsEl, word);
+      optionsEl.appendChild(btn);
+    });
+  } else if (mode === 'meaning') {
+    // Show the sentence containing the word, ask for meaning
+    document.getElementById('theWord').textContent = '';
+    document.getElementById('thePos').textContent = '';
+    questionTextEl.textContent = word.example;
+
+    const options = [
+      { text: word.def, correct: true },
+      ...word.wrong.map(w => ({ text: w, correct: false }))
+    ].sort(() => Math.random() - 0.5);
+
+    options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.dataset.correct = opt.correct;
+      btn.innerHTML = `<span class="option-letter">${letters[i]}</span>${opt.text}`;
+      btn.onclick = () => handleAnswer(opt.correct, btn, optionsEl, word);
+      optionsEl.appendChild(btn);
+    });
+  } else if (mode === 'scenario') {
+    // Show sentence with a blank and offer word choices
+    document.getElementById('theWord').textContent = '';
+    document.getElementById('thePos').textContent = '';
+    let sentence = word.example;
+    const re = new RegExp(word.word, 'i');
+    const blankSentence = re.test(sentence) ? sentence.replace(re, '_____') : ('_____ ' + sentence);
+    questionTextEl.textContent = blankSentence;
+
+    const pool = VOCAB_BANK.filter(w => w.word !== word.word).sort(() => Math.random() - 0.5);
+    const wrongWords = pool.slice(0, 3).map(w => w.word);
+    const opts = [
+      { text: word.word, correct: true },
+      ...wrongWords.map(w => ({ text: w, correct: false }))
+    ].sort(() => Math.random() - 0.5);
+
+    opts.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.dataset.correct = opt.correct;
+      btn.innerHTML = `<span class="option-letter">${letters[i]}</span>${opt.text}`;
+      btn.onclick = () => handleAnswer(opt.correct, btn, optionsEl, word);
+      optionsEl.appendChild(btn);
+    });
+  }
 
   document.getElementById('feedback').classList.remove('show');
   document.getElementById('quizCard').classList.add('show');
@@ -1041,9 +1089,9 @@ function handleAnswer(isCorrect, clickedBtn, optionsEl, word) {
     b.style.cursor = 'default';
   });
 
-  // Highlight correct/wrong
+  // Highlight correct answer(s)
   optionsEl.querySelectorAll('.option-btn').forEach(b => {
-    if (b.innerHTML.includes(word.def)) b.classList.add('correct');
+    if (b.dataset && b.dataset.correct === 'true') b.classList.add('correct');
   });
 
   state.totalAnswered++;
@@ -1159,7 +1207,7 @@ function restartGame() {
   state = {
     score: 0, streak: 0, bestStreak: 0, round: 0,
     lives: 6, maxLives: 6, totalCorrect: 0, totalAnswered: 0,
-    difficulty: state.difficulty, currentWord: null, spinning: false,
+    mode: state.mode, currentWord: null, spinning: false,
     usedWords: [], wordResults: [], wheelWords: [], angle: 0,
   };
   document.getElementById('gameOver').classList.remove('show');
