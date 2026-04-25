@@ -147,7 +147,8 @@
     transform: translateX(-50%);
     z-index: 10;
     font-size: 2.2rem;
-    filter: drop-shadow(0 0 10px var(--neon-pink));
+    color: #fff;
+    filter: drop-shadow(0 0 10px rgba(255,255,255,0.9));
     animation: pointerGlow 1.5s ease-in-out infinite alternate;
   }
 
@@ -921,8 +922,9 @@ function drawWheel() {
     ctx.font = 'bold 26px Inter, sans-serif';
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
     ctx.shadowBlur = 4;
-    const word = state.wheelWords[i].word;
-    ctx.fillText(word.length > 12 ? word.slice(0, 11) + '…' : word, r - 20, 8);
+    const wordObj = state.wheelWords[i];
+    const displayText = (state.mode === 'scenario') ? '' : (wordObj.word.length > 12 ? wordObj.word.slice(0, 11) + '…' : wordObj.word);
+    ctx.fillText(displayText, r - 20, 8);
     ctx.restore();
   }
 
