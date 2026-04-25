@@ -142,9 +142,10 @@
   /* Pointer / Arrow */
   .wheel-pointer {
     position: absolute;
-    top: -18px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 50%;
+    right: -18px;
+    left: auto;
+    transform: translateY(-50%);
     z-index: 10;
     font-size: 2.2rem;
     color: #fff;
@@ -640,7 +641,7 @@
 
   <div class="wheel-section">
     <div class="wheel-wrapper">
-      <div class="wheel-pointer">▼</div>
+      <div class="wheel-pointer">◀</div>
       <canvas id="wheel" width="760" height="760"></canvas>
     </div>
     <button class="spin-btn" id="spinBtn" onclick="spinWheel()">SPIN</button>
@@ -992,7 +993,8 @@ function spinWheel() {
     drawWheel();
 
     // Tick sound on segment change
-    const pointerAngle = (2 * Math.PI - (state.angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    const pointerPlacement = Math.PI / 2; // pointer sits at right side
+    const pointerAngle = (pointerPlacement - (state.angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
     const currentSeg = Math.floor(pointerAngle / arc) % segments;
     if (currentSeg !== lastSegment) {
       tick();
@@ -1002,8 +1004,9 @@ function spinWheel() {
     if (progress < 1) {
       requestAnimationFrame(animate);
     } else {
-      // Determine winner
-      const finalAngle = (2 * Math.PI - (state.angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      // Determine winner (account for pointer at right side)
+      const pointerPlacement = Math.PI / 2; // right side
+      const finalAngle = (pointerPlacement - (state.angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
       const winIndex = Math.floor(finalAngle / arc) % segments;
       state.currentWord = state.wheelWords[winIndex];
       state.spinning = false;
