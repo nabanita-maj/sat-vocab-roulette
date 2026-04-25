@@ -554,6 +554,21 @@
     color: var(--neon-blue);
   }
 
+  .mode-instructions {
+    text-align: center;
+    color: var(--text-dim);
+    margin: 8px 0 12px;
+    font-size: 0.95rem;
+  }
+
+  .mode-hint {
+    text-align: center;
+    color: var(--neon-yellow);
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
   /* Screen shake for wrong answer */
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
@@ -599,6 +614,7 @@
     <button class="diff-btn" data-mode="meaning" onclick="setMode('meaning')">Meaning</button>
     <button class="diff-btn" data-mode="scenario" onclick="setMode('scenario')">Scenario</button>
   </div>
+  <div class="mode-instructions" id="modeInstructions">Vocab mode — Word shown; pick its definition.</div>
 
   <div class="scoreboard">
     <div class="score-item correct">
@@ -635,6 +651,7 @@
       <div class="pos" id="thePos"></div>
     </div>
     <div class="question-text">What does this word mean?</div>
+    <div class="mode-hint" id="modeHint"></div>
     <div class="options" id="options"></div>
     <div class="result-feedback" id="feedback"></div>
   </div>
@@ -839,6 +856,12 @@ function init() {
 function setMode(mode) {
   state.mode = mode;
   document.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  const mi = document.getElementById('modeInstructions');
+  if (mi) {
+    if (mode === 'vocab') mi.textContent = 'Vocab mode — Word shown; pick its definition.';
+    else if (mode === 'meaning') mi.textContent = 'Meaning mode — Sentence shown; choose the correct meaning.';
+    else if (mode === 'scenario') mi.textContent = 'Scenario mode — Fill the blank with the best word.';
+  }
   populateWheel();
   drawWheel();
 }
@@ -1010,6 +1033,7 @@ function showQuiz() {
   const mode = state.mode || 'vocab';
   const optionsEl = document.getElementById('options');
   const questionTextEl = document.querySelector('.question-text');
+  const modeHintEl = document.getElementById('modeHint');
 
   optionsEl.innerHTML = '';
   const letters = ['A', 'B', 'C', 'D'];
@@ -1018,6 +1042,7 @@ function showQuiz() {
     document.getElementById('theWord').textContent = word.word;
     document.getElementById('thePos').textContent = `(${word.pos})`;
     questionTextEl.textContent = 'What does this word mean?';
+    if (modeHintEl) modeHintEl.textContent = 'Select the correct definition.';
 
     const options = [
       { text: word.def, correct: true },
@@ -1033,10 +1058,10 @@ function showQuiz() {
       optionsEl.appendChild(btn);
     });
   } else if (mode === 'meaning') {
-    // Show the sentence containing the word, ask for meaning
     document.getElementById('theWord').textContent = '';
     document.getElementById('thePos').textContent = '';
     questionTextEl.textContent = word.example;
+    if (modeHintEl) modeHintEl.textContent = 'Choose the best meaning of the word in the sentence.';
 
     const options = [
       { text: word.def, correct: true },
@@ -1052,13 +1077,13 @@ function showQuiz() {
       optionsEl.appendChild(btn);
     });
   } else if (mode === 'scenario') {
-    // Show sentence with a blank and offer word choices
     document.getElementById('theWord').textContent = '';
     document.getElementById('thePos').textContent = '';
     let sentence = word.example;
     const re = new RegExp(word.word, 'i');
     const blankSentence = re.test(sentence) ? sentence.replace(re, '_____') : ('_____ ' + sentence);
     questionTextEl.textContent = blankSentence;
+    if (modeHintEl) modeHintEl.textContent = 'Pick the word that best fills the blank.';
 
     const pool = VOCAB_BANK.filter(w => w.word !== word.word).sort(() => Math.random() - 0.5);
     const wrongWords = pool.slice(0, 3).map(w => w.word);
